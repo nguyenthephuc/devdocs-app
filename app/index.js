@@ -14,94 +14,82 @@ let mainWindow
 let isQuitting = false
 
 const isAlreadyRunning = app.makeSingleInstance(() => {
-  if (mainWindow) {
-    if (mainWindow.isMinimized()) {
-      mainWindow.restore()
+    if (mainWindow) {
+        if (mainWindow.isMinimized())
+            mainWindow.restore()
+        mainWindow.show()
     }
-
-    mainWindow.show()
-  }
 })
 
-if (isAlreadyRunning) {
-  app.quit()
-}
+if (isAlreadyRunning)
+    app.quit()
 
 function createMainWindow() {
-  const lastWindowState = config.get('lastWindowState')
+    const lastWindowState = config.get('lastWindowState')
 
-  const win = new electron.BrowserWindow({
-    title: app.getName(),
-    show: false,
-    x: lastWindowState.x,
-    y: lastWindowState.y,
-    width: lastWindowState.width,
-    height: lastWindowState.height,
-    titleBarStyle: 'hidden-inset',
-    autoHideMenuBar: true,
-    webPreferences: {
-      // preload: path.join(__dirname, 'browser.js'),
-      nodeIntegration: false,
-      plugins: true
-    }
-  })
+    const win = new electron.BrowserWindow({
+        title: app.getName(),
+        show: false,
+        x: lastWindowState.x,
+        y: lastWindowState.y,
+        width: lastWindowState.width,
+        height: lastWindowState.height,
+        titleBarStyle: 'hidden-inset',
+        autoHideMenuBar: true,
+        webPreferences: {
+            // preload: path.join(__dirname, 'browser.js'),
+            nodeIntegration: false,
+            plugins: true
+        }
+    })
 
-  if (process.platform === 'darwin') {
-    win.setSheetOffset(40)
-  }
+    if (process.platform === 'darwin')
+        win.setSheetOffset(40)
 
-  win.loadURL('https://devdocs.io')
+    win.loadURL('https://devdocs.io')
 
-  win.on('close', e => {
-    if (!isQuitting) {
-      e.preventDefault()
+    win.on('close', e => {
+        if (!isQuitting) {
+            e.preventDefault()
+            if (process.platform === 'darwin')
+                app.hide()
+            else
+                win.hide()
+        }
+    })
 
-      if (process.platform === 'darwin') {
-        app.hide()
-      } else {
-        win.hide()
-      }
-    }
-  })
-
-  win.on('page-title-updated', e => {
-    e.preventDefault()
-  })
-
-  return win
+    win.on('page-title-updated', e => {
+        e.preventDefault()
+    })
+    return win
 }
 
 app.on('ready', () => {
-  electron.Menu.setApplicationMenu(appMenu)
-  mainWindow = createMainWindow()
-  tray.create(mainWindow)
+    electron.Menu.setApplicationMenu(appMenu)
+    mainWindow = createMainWindow()
+    tray.create(mainWindow)
 
-  const page = mainWindow.webContents
+    const page = mainWindow.webContents
 
-  page.on('dom-ready', () => {
-    page.insertCSS(fs.readFileSync(path.join(__dirname, 'browser.css'), 'utf8'))
+    page.on('dom-ready', () => {
+        page.insertCSS(fs.readFileSync(path.join(__dirname, 'browser.css'), 'utf8'))
+        if (process.platform === 'darwin')
+            page.insertCSS(fs.readFileSync(path.join(__dirname, 'macos.css'), 'utf8'))
+        mainWindow.show()
+    })
 
-    if (process.platform === 'darwin') {
-      page.insertCSS(fs.readFileSync(path.join(__dirname, 'macos.css'), 'utf8'))
-    }
-
-    mainWindow.show()
-  })
-
-  page.on('new-window', (e, url) => {
-    e.preventDefault()
-    electron.shell.openExternal(url)
-  })
+    page.on('new-window', (e, url) => {
+        e.preventDefault()
+        electron.shell.openExternal(url)
+    })
 })
 
 app.on('activate', () => {
-  mainWindow.show()
+    mainWindow.show()
 })
 
 app.on('before-quit', () => {
-  isQuitting = true
-
-  if (!mainWindow.isFullScreen()) {
-    config.set('lastWindowState', mainWindow.getBounds())
-  }
+    isQuitting = true
+    if (!mainWindow.isFullScreen())
+        config.set('lastWindowState', mainWindow.getBounds())
 })
